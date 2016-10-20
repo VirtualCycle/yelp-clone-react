@@ -1,6 +1,9 @@
 const webpack = require('webpack')
 const fs = require('fs')
 const path = require('path')
+
+require('babel-register')
+
 const join = path.join
 const resolve = path.resolve
 
@@ -8,6 +11,7 @@ const getConfig = require('hjs-webpack')
 
 const NODE_ENV = process.env.NODE_ENV
 const isDev = NODE_ENV === 'development'
+const isTest = NODE_ENV === 'test'
 
 const root = resolve(__dirname)
 const src = join(root, 'src')
@@ -20,6 +24,30 @@ var config = getConfig({
   out: dest,
   clearBeforeBuild: true
 })
+
+if (isTest) {
+  config.externals = {
+    'react/lib/ReactContext': true,
+    'react/lib/ExecutionEnvironment': true
+  }
+
+  config.plugins = config.plugins.filter(p => {
+    const name = p.constructor.toString()
+    const fnName = name.match(/^function (.*)\((.*\))/)
+
+    const idx = [
+      'DedupePlugin',
+      'UglifyJsPlugin'
+    ].indexOf(fnName[1])
+    return idx < 0
+  })
+}
+
+config.externals = {
+  'react/lib/ReactContext': true,
+  'react/lib/ExecutionEnvironment': true,
+  'react/addons': true
+}
 
 config.postcss = [].concat([
   require('precss')({}),
